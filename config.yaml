@@ -1,0 +1,54 @@
+OPENAI_API_TYPE: 'nvidia'  # azure | openai | ollama | nvidia | nvidia_nim
+
+# --- NVIDIA Integrate API (OpenAI SDK v1 client) ---
+# Prefer env:  export NVIDIA_API_KEY=nvapi-...
+# Or set below (must start with nvapi-):
+NVIDIA_API_KEY: 'CHANGEME-REDACTED-LEAKED-KEY'
+NVIDIA_BASE_URL: 'https://integrate.api.nvidia.com/v1'
+NVIDIA_TOP_P: 0.95            # default for DeepSeek; other models omit unless set
+NVIDIA_THINKING: false        # DeepSeek chat_template_kwargs.thinking (off for AV hot path)
+NVIDIA_MAX_TOKENS: 2048       # driver/master default; DeepSeek chat demos often use 16384
+
+# Legacy / non-nvidia credentials (unused when OPENAI_API_TYPE=nvidia)
+REAL_OPENAI_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxx'
+OPENAI_API_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxx'
+OPENAI_API_BASE: 'https://integrate.api.nvidia.com/v1'
+OPENAI_API_VERSION: '2023-03-15-preview'
+
+# --- Chat model roles (NVIDIA NIM model IDs) ---
+# planner/driver default
+CHATGPT_MODEL: 'meta/llama-3.1-70b-instruct'  # build page: meta/llama-3_1-70b-instruct
+MODEL_DRIVER: 'meta/llama-3.1-70b-instruct'
+MODEL_MASTER: 'mistralai/mistral-medium-3.5-128b'
+MODEL_REFLECTION: 'mistralai/mistral-medium-3.5-128b'
+MODEL_VERIFY: 'deepseek-ai/deepseek-v4-pro'  # thinking via NVIDIA_THINKING (default false)
+OLLAMA_MODEL: 'llama3'
+
+# --- Embeddings ---
+# local sentence-transformers so NVIDIA chat keys alone work for memory
+EMBEDDING_BACKEND: 'local'   # local | openai | azure
+LOCAL_EMBEDDING_MODEL: 'sentence-transformers/all-MiniLM-L6-v2'
+EMBEDDING_MODEL: 'ada-002'
+
+# --- KoMA / KoMA-RAG ablation flags (paper Table ablation) ---
+USE_MEMORY: false
+REFLECTION: false
+ENABLE_MASTER: false          # Master coordination module
+ENABLE_VERIFICATION: false    # Verification-enhanced RAG filter
+MASTER_USE_LLM: true          # LLM refine directives (else rule-based only)
+MASTER_CONFLICT_ONLY_LLM: true  # LLM Master only when conflicts detected
+FACTUAL_USE_LLM: false        # prefer deterministic factual checks on hot path
+TAU_VERIFY: 0.5               # τ_verify (manuscript reports 0.5)
+LAMBDA_TIME: 0.01             # contextual time-decay λ
+DELTA_T_SAFE: 2.0             # conflict temporal margin (seconds)
+LAMBDA_COOP: 0.3
+LAMBDA_CONFLICT: 0.5
+VERIFICATION_EMPTY_FALLBACK: 'similarity'  # similarity | none
+SCENARIO_TYPE: 'highway'
+FEW_SHOT_NUM: 2
+K_CANDIDATES: 5               # retrieve k' before verification filter
+
+# --- Proposed dual-path stubs (NOT evaluated; safe defaults off) ---
+ENABLE_DUAL_PATH: false
+T_MAX_SECONDS: 0.0            # wall-clock budget; 0 = disabled
+ASYNC_REFLECTION: false

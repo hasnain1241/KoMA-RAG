@@ -1,419 +1,96 @@
-﻿# KoMA-RAG: Retrieval-Augmented Hierarchical Multi-Agent Framework
+# KoMA: Knowledge-driven Multi-agent Framework for Autonomous Driving with Large Language Models
+[![Custom badge](https://img.shields.io/badge/Paper-Arxiv-b31b1b?logo=arxiv&logoColor=white?style=flat-square)](https://arxiv.org/abs/2407.14239)
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Framework: LangChain Compatible](https://img.shields.io/badge/Framework-LangChain-green.svg)](https://langchain.com/)
-[![Colab Ready](https://img.shields.io/badge/Colab-Ready-orange.svg)](https://colab.research.google.com/)
+The KoMA framework consisting of the multi-agent interaction, the multi-step planning,
+the shared-memory, and the ranking-based reflection modules to enhance multi-agents’ decision-making in complex driving scenarios.
+<p align="center">
+     <img src="figs/fig1.png" width="100%" height="100%">
+     <br>Fig.1 The knowledge-driven paradigm for single driving agent system and multiple driving agents system. 
+</p>
 
-> **KoMA RAG-A Retrieval-Augmented Hierarchical Multi-Agent Guided Framework for Autonomous Driving Decision Making**
+<p align="center">
+     <img src="figs/fig2.png" width="100%" height="100%">
+     <br>Fig.2 Knowledge-driven autonomous driving framework KoMA that incorporates multiple agents empowered by LLMs.
+</p>
 
----
-
-## 📋 Table of Contents
-
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [Architecture](#-architecture)
-- [Installation](#-installation)
-- [Quick Start](#-quick-start)
-- [Configuration](#-configuration)
-- [Modules](#-modules)
-- [Ablation Study](#-ablation-study)
-- [Results](#-results)
-- [API Reference](#-api-reference)
-- [Contributing](#-contributing)
-- [Citation](#-citation)
-- [License](#-license)
-
----
-
-## 🎯 Overview
-
-**KoMA-RAG** extends the Knowledge-driven Multi-Agent (KoMA) framework with two major innovations:
-
-1. **Verification-Enhanced Retrieval (RAG)**: A composite verification function that filters factually inconsistent memories during retrieval, preventing hallucination in LLM-based decision making.
-
-2. **Master Coordination Module**: A hierarchical agent that explicitly manages inter-agent communication, conflict detection, and resolution in multi-agent autonomous driving scenarios.
-
-### Problem Statement
-
-Traditional LLM-based autonomous driving systems face two critical challenges:
-
-| Challenge | Description | Our Solution |
-|-----------|-------------|--------------|
-| **Factual Inconsistency** | Retrieved memories may be semantically similar but factually irrelevant | Composite Verification Function |
-| **Weak Coordination** | Decentralized agents make conflicting decisions | Hierarchical Master Agent |
-
----
-
-## ✨ Key Features
-
-- 🤖 **Multi-LLM Support**: Groq (free), OpenAI, or Mock LLM for testing
-- 🧠 **RAG-Enhanced Memory**: FAISS vector store with verification filtering
-- 👑 **Master Coordination**: Hierarchical conflict resolution
-- 🔬 **Ablation-Friendly**: Easy toggle for component comparison
-- 📊 **Built-in Metrics**: Factual consistency, coordination accuracy, safety
-- 🚗 **Highway Simulation**: IDM-based traffic with ego agents
-- 📈 **Visualization**: Automatic plotting of results
-
----
-
-## 🏗 Architecture
-
-### High-Level System Overview
-![Architecture Diagram](architecture.png)
-
-### Mathematical Formulation
-
-**Verification Function:**
-V(e_j, Ω_i(t)) = V_semantic × V_factual × V_conual
-
-Where:
-
-V_semantic = cos(z_j, z_i(t)) # Cosine similarity
-V_factual = LLM_verify(e_j, Ω_i(t)) # Factual consistency check
-V_conual = exp(-λ|t_j - t|) × I[scenario_match]
-
-
-
-**Master Coordination Objective:**
-max J_collective = E[Σ γ^t (Σ r_i(t) + λ_coop·R_coop - λ_conflict·R_conflict)]
-
-
-
-
----
-
-## 💻 Installation
+## Getting Started
 
 ### Requirements
+we recommend using conda to create an python virtual environment.
 
-- Python 3.8+
-- CUDA (optional, for GPU acceleration)
-
-### Option 1: Google Colab (Recommended)
-
+Note that if you want to use the Memory module, you need to run the code under linux
 ```python
-# Run in Colab cell
-!pip install -q faiss-cpu sentence-transformers groq openai numpy pandas matplotlib seaborn tqdm
-Option 2: Local Installation
-Bash
-
-# Clone repository
-git clone https://github.com/yourusername/koma-rag.git
-cd koma-rag
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-.\venv\Scripts\activate  # Windows
-
-# Install dependencies
+conda create -n KoMA python=3.9
+conda activate KoMA
 pip install -r requirements.txt
-requirements.txt
+```
+
+### Configuration
+All configurable parameters are located in `config.yaml`.
+
+Before running KoMA, set up your OpenAI API keys in `config.yaml`.
+
+### Using local LLMs
+If you want to locally deploy some free open-source large language models via Ollama for testing, please download and deploy them according to the webpage `https://ollama.com/`. Note that you need to modify the `API_TYPE` in the `config.yaml` file and change the type of the large language model in `LLMDriver/driverAgent` (default is `llama3`).
+
+### Running KoMA
+```python
+python main.py
+```
+
+## Usage
+
+### Switching simulation scene
+All simulation scenarios are set in `highway_env/envs`. 
+
+The total number of vehicles in the initial simulation scenario does not exceed 8. We have only set up 8 random spawn locations for vehicles.
+You can customize the simulation scenario to solve this problem.
+
+### one-lane
+The configuration key 'KoMA-merge-generalization' should be replaced with 'KoMA-merge-onelane' in `main.py`.
+```python
+config={
+    'KoMA-merge-onelane':
+}
+```
+https://github.com/user-attachments/assets/11ebf560-6489-4bda-9eb9-91accdaccdd6
+
+### three-lane
+```python
+config={
+    'KoMA-merge-threelane':
+}
+```
+
+https://github.com/user-attachments/assets/7c7461eb-8716-4409-be3a-488b69e0e8b1
 
 
-faiss-cpu>=1.7.4
-sentence-transformers>=2.2.2
-groq>=0.4.0
-openai>=1.0.0
-numpy>=1.24.0
-pandas>=2.0.0
-matplotlib>=3.7.0
-seaborn>=0.12.0
-tqdm>=4.65.0
-🚀 Quick Start
-1. Set Up API Key
-Python
+### roundabout
+```python
+config={
+    'KoMA-merge-roundabout':
+}
+```
+https://github.com/user-attachments/assets/e437082f-98ce-49f8-b501-ae4faee3e4c5
 
-# Option A: Environment variable
-import os
-os.environ["GROQ_API_KEY"] = "your-groq-api-key"
+## Result
+All content is saved in the `./result/`, including videos and documents.
 
-# Option B: Direct in code (see Configuration section)
-2. Run Basic Experiment
-Python
-
-from koma_rag import KoMARAGFramework, FrameworkConfig, ExperimentConfig, APIConfig, LLMProvider
-
-# Configure
-api_config = APIConfig(
-    provider=LLMProvider.GROQ,
-    groq_api_key="your-key-here"
-)
-
-framework_config = FrameworkConfig(
-    enable_master_agent=True,
-    enable_rag_verification=True,
-    num_agents=2,
-    num_episodes=10
-)
-
-experiment_config = ExperimentConfig(
-    experiment_name="my_experiment",
-    verbose=True
-)
-
-# Run
-framework = KoMARAGFramework(framework_config, experiment_config, api_config)
-results, summary = framework.run_experiment()
-
-# Visualize
-framework.metrics.plot()
-3. View Results
-Python
-
-print(f"Average Reward: {summary['avg_reward']:.2f}")
-print(f"Collision Rate: {summary['collision_rate']:.2%}")
-print(f"Factual Consistency: {summary['factual_consistency']:.2%}")
-⚙ Configuration
-Framework Configuration
-Python
-
-@dataclass
-class FrameworkConfig:
-    # Ablation toggles
-    enable_master_agent: bool = True      # Enable Master Coordination
-    enable_rag_verification: bool = True  # Enable RAG Verification
-    enable_reflection: bool = True        # Enable Reflection Module
-    enable_intent_inference: bool = True  # Enable Intent Inference
-    
-    # RAG parameters
-    k_candidates: int = 10     # Candidates to retrieve (k')
-    k_final: int = 3           # Final memories to use (k)
-    tau_verify: float = 0.4    # Verification threshold (τ)
-    lambda_time: float = 0.1   # Temporal decay factor
-    
-    # Master Agent parameters
-    lambda_coop: float = 0.3       # Cooperation weight
-    lambda_conflict: float = 0.5   # Conflict penalty weight
-    delta_t_safe: float = 2.0      # Safe time gap (seconds)
-    
-    # Environment parameters
-    num_agents: int = 3            # Number of ego agents
-    num_idm_vehicles: int = 5      # Number of IDM vehicles
-    num_lanes: int = 4             # Highway lanes
-    max_timesteps: int = 50        # Episode length
-API Configuration
-Python
-
-@dataclass
-class APIConfig:
-    provider: LLMProvider = LLMProvider.GROQ
-    groq_api_key: str = ""
-    openai_api_key: str = ""
-    groq_model: str = "llama-3.1-8b-instant"  # Free tier
-    openai_model: str = "gpt-3.5-turbo"
-    temperature: float = 0.7
-    max_tokens: int = 512
-LLM Providers
-Provider	Model	Cost	Speed	Quality
-Groq	llama-3.1-8b-instant	Free	⚡ Fast	⭐⭐⭐⭐
-OpenAI	gpt-3.5-turbo	Paid	Medium	⭐⭐⭐⭐⭐
-Mock	N/A	Free	⚡⚡ Instant	⭐⭐
-📦 Modules
-Module Overview
-Phase	Module	Description
-0	Installation	Dependencies and imports
-1	Configuration	API keys and settings
-2	Data Structures	Core classes (AgentState, Experience, etc.)
-3	LLM Interface	Multi-provider LLM wrapper
-4	Embedding & FAISS	Vector store for memory
-5	RAG Memory	Verification-enhanced retrieval
-6	Environment	Highway simulation with IDM
-7	Intent Inference	Infer IDM vehicle intentions
-8	Master Coordination	Conflict detection and resolution
-9	Planning	Goal-Plan-Action pipeline
-10	Reflection	Episode evaluation and learning
-11	Metrics	Performance measurement
-12	Framework	Main integration class
-13	Experiment	Run experiments
-14	Ablation	Compare configurations
-15	Export	Save results
-Module Dependency Graph
+The vector database is stored in the `./db/` .
 
 
-Phase 0-1: Setup
-    │
-    ▼
-Phase 2: Data Structures
-    │
-    ├──────────────────┐
-    ▼                  ▼
-Phase 3: LLM      Phase 4: FAISS
-    │                  │
-    └────────┬─────────┘
-             ▼
-        Phase 5: RAG Memory
-             │
-    ┌────────┼────────┐
-    ▼        ▼        ▼
-Phase 6   Phase 7   Phase 8
-  Env     Intent    Master
-    │        │        │
-    └────────┴────────┘
-             │
-             ▼
-        Phase 9: Planning
-             │
-             ▼
-        Phase 10: Reflection
-             │
-             ▼
-        Phase 11: Metrics
-             │
-             ▼
-        Phase 12-15: Run & Export
-🔬 Ablation Study
-Running Ablation
-Python
-
-def run_ablation(api_config, num_episodes=5):
-    configs = {
-        "Base_KoMA": {
-            "enable_master_agent": False,
-            "enable_rag_verification": False
-        },
-        "KoMA_Verification": {
-            "enable_master_agent": False,
-            "enable_rag_verification": True
-        },
-        "KoMA_Master": {
-            "enable_master_agent": True,
-            "enable_rag_verification": False
-        },
-        "KoMA_RAG_Full": {
-            "enable_master_agent": True,
-            "enable_rag_verification": True
-        }
-    }
-    # ... run experiments
-Ablation Configurations
-Config	Master Agent	RAG Verification	Purpose
-Base_KoMA	❌	❌	Baseline comparison
-KoMA_Verification	❌	✅	Test RAG contribution
-KoMA_Master	✅	❌	Test Master contribution
-KoMA_RAG_Full	✅	✅	Full framework
-📊 Results
-Performance Comparison
 
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                    TABLE I: ABLATION STUDY RESULTS                  │
-├─────────────────────┬─────────┬──────────────────┬─────────────────┤
-│ Configuration       │ Reward  │ Factual Consist. │ Collision Rate  │
-├─────────────────────┼─────────┼──────────────────┼─────────────────┤
-│ Base KoMA           │  77.0   │      0.00        │     0.00        │
-│ KoMA + Master       │  95.8   │      0.00        │     0.00        │
-│ KoMA + Verification │  97.4   │      0.54        │     0.00        │
-│ KoMA-RAG (Full)     │  94.7   │      0.65        │     0.00        │
-├─────────────────────┼─────────┼──────────────────┼─────────────────┤
-│ Improvement         │  +23%   │     +65%         │   Maintained    │
-└─────────────────────┴─────────┴──────────────────┴─────────────────┘
-Visual Results
+## Citing
 
+If you use the project in your work, please consider citing it with:
+```bibtex
+@article{jiang2024koma,
+  title={Koma: Knowledge-driven multi-agent framework for autonomous driving with large language models},
+  author={Jiang, Kemou and Cai, Xuan and Cui, Zhiyong and Li, Aoyong and Ren, Yilong and Yu, Haiyang and Yang, Hao and Fu, Daocheng and Wen, Licheng and Cai, Pinlong},
+  journal={IEEE Transactions on Intelligent Vehicles},
+  year={2024},
+  publisher={IEEE}
+}
+```
 
-REWARD                              FACTUAL CONSISTENCY
-    
-100 │           ██  ██              0.7 │               ██
- 95 │       ██  ██  ██              0.6 │          ██   ██
- 90 │       ██  ██  ██              0.5 │          ██   ██
- 85 │       ██  ██  ██              0.4 │          ██   ██
- 80 │  ██   ██  ██  ██              0.3 │          ██   ██
- 75 │  ██   ██  ██  ██              0.2 │          ██   ██
-    └─────────────────              0.0 │  ░░  ░░  ██   ██
-      Base Mstr Verf Full               └─────────────────
-                                          Base Mstr Verf Full
-Key Findings
-Finding	Evidence
-✅ RAG Verification reduces hallucination	FC: 0.00 → 0.65
-✅ Master Agent improves coordination	Reward: 77 → 95.8 (+24%)
-✅ Combined approach maintains safety	0 collisions
-✅ Verification filters irrelevant memories	35% rejection rate
-📚 API Reference
-Core Classes
-KoMARAGFramework
-Python
-
-class KoMARAGFramework:
-    """Main framework class integrating all modules."""
-    
-    def __init__(self, fw_config: FrameworkConfig, 
-                 exp_config: ExperimentConfig,
-                 api_config: APIConfig):
-        """Initialize framework with configurations."""
-        
-    def run_episode(self, episode_id: int) -> Dict:
-        """Run single episode and return results."""
-        
-    def run_experiment(self) -> Tuple[List[Dict], Dict]:
-        """Run complete experiment and return results, summary."""
-RAGMemoryModule
-Python
-
-class RAGMemoryModule:
-    """RAG-Enhanced memory with verification."""
-    
-    def add_experience(self, experience: Experience):
-        """Add verified experience to memory."""
-        
-    def retrieve(self, con: str, current_time: float,
-                 scenario_type: str = "highway") -> List[Experience]:
-        """Two-stage retrieval with verification filtering."""
-MasterCoordinationModule
-Python
-
-class MasterCoordinationModule:
-    """Hierarchical coordination for multi-agent systems."""
-    
-    def detect_conflicts(self, goals: Dict, states: Dict) -> List[Tuple]:
-        """Detect conflicts between agent goals."""
-        
-    def coordinate(self, proposals: Dict, states: Dict) -> Dict:
-        """Coordinate agents and resolve conflicts."""
-Data Classes
-Python
-
-@dataclass
-class AgentState:
-    agent_id: str
-    x: float           # Position x (meters)
-    y: float           # Position y (lane)
-    theta: float       # Heading angle
-    velocity: float    # Speed (m/s)
-    acceleration: float
-    lane: int
-    goal: Optional[str]
-    priority: float    # [0, 1]
-    is_ego: bool
-
-@dataclass
-class Experience:
-    experience_id: str
-    description: str   # D_k
-    goal: str          # G_k
-    plan: str          # P_k
-    action: Action     # u_k
-    reward: float      # r_k
-    embedding: Optional[np.ndarray]  # z_k
-    timestamp: float
-    scenario_type: str
-    verified: bool
-
-class Action(Enum):
-    IDLE = 0
-    ACCELERATE = 1
-    DECELERATE = 2
-    LANE_CHANGE_LEFT = 3
-    LANE_CHANGE_RIGHT = 4
-
-🤝 Contributing
-We welcome contributions! Please follow these steps:
-
-Fork the repository
-Create a feature branch (git checkout -b feature/amazing-feature)
-Commit changes (git commit -m 'Add amazing feature')
-Push to branch (git push origin feature/amazing-feature)
-Open a Pull Request
-Development Setup
