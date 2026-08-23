@@ -1,3 +1,15 @@
+import sys
+
+if sys.platform == "win32":
+    # LLM output can contain Unicode punctuation (curly quotes, em dashes,
+    # narrow no-break spaces) that crashes rich's legacy Windows console
+    # renderer under the default cp1252 codepage. Switch to UTF-8 before
+    # anything prints.
+    import os as _os
+    _os.system("chcp 65001 >nul")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 import copy
 import gymnasium as gym
 import numpy as np
@@ -28,11 +40,11 @@ T_MAX_SECONDS = flags["T_MAX_SECONDS"]
 ASYNC_REFLECTION = flags["ASYNC_REFLECTION"]
 
 encode_type = 'sce_language'
-db_path = 'db/test'
-result_folder = "./result/test"
+db_path = os.environ.get("DB_PATH", "db/test")
+result_folder = os.environ.get("RESULT_FOLDER", "./result/test")
 few_shot_num = flags["FEW_SHOT_NUM"]
 k_candidates = flags["K_CANDIDATES"]
-simulation_duration = 20
+simulation_duration = int(os.environ.get("SIMULATION_DURATION", "20"))
 
 # environment setting
 config={
@@ -129,6 +141,7 @@ while episode < simulation_duration:
     efficiency_score_list = [[] for i in range(controlled_vehicle_number)]
     safety_score_list = [[] for i in range(controlled_vehicle_number)]
     collision_list = [0 for i in range(controlled_vehicle_number)]
+    reward_list = []
 
     break_flag = False
     try:
@@ -217,6 +230,7 @@ while episode < simulation_duration:
                     })
                 action = tuple(action_list)
                 obs, reward, done, info, _ = env.step(action)
+                reward_list.append(float(np.mean(reward)) if hasattr(reward, "__iter__") else float(reward))
                 speed, efficiency_score, safety_score = sce.evaluation(controlled_vehicle_number)
                 for k in range(controlled_vehicle_number):
                     docs_list[k][-1]["efficiency_score"] = efficiency_score[k]
@@ -288,5 +302,25 @@ while episode < simulation_duration:
                         )
             elif REFLECTION and not USE_MEMORY:
                 print("[yellow]REFLECTION=true but USE_MEMORY=false; skipping memory writes.[/yellow]")
+
+        # Episode-level metrics for ablation aggregation (reward, factual consistency, collision rate)
+        episode_factual_consistency = (
+            verifier.mean_factual_score() if (ENABLE_VERIFICATION and verifier is not None) else float("nan")
+        )
+        if ENABLE_VERIFICATION and verifier is not None:
+            verifier.reset_episode_stats()
+        summary_path = result_folder + "/episode_summary.csv"
+        summary_row = pd.DataFrame([{
+            "episode": episode,
+            "steps": already_decision_steps,
+            "total_reward": float(np.sum(reward_list)) if reward_list else 0.0,
+            "mean_reward": float(np.mean(reward_list)) if reward_list else 0.0,
+            "collision": int(any(collision_list)),
+            "factual_consistency": episode_factual_consistency,
+        }])
+        summary_row.to_csv(
+            summary_path, mode='a', index=False, header=not os.path.exists(summary_path)
+        )
+
         episode += 1
         env.close()

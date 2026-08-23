@@ -51,7 +51,12 @@ def apply_config_to_env(cfg: Dict[str, Any]) -> None:
         set_if_absent("EMBEDDING_MODEL", cfg.get("EMBEDDING_MODEL"))
         set_if_absent("CHATGPT_MODEL", cfg.get("CHATGPT_MODEL"))
     elif api_type == "openai":
-        set_if_absent("OPENAI_API_KEY", cfg.get("REAL_OPENAI_KEY") or cfg.get("OPENAI_API_KEY"))
+        # Groq (or any OpenAI-compatible provider) key: env var wins over config.yaml.
+        groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+        if groq_key:
+            os.environ["OPENAI_API_KEY"] = groq_key
+        else:
+            set_if_absent("OPENAI_API_KEY", cfg.get("REAL_OPENAI_KEY") or cfg.get("OPENAI_API_KEY"))
         set_if_absent("OPENAI_API_BASE", cfg.get("OPENAI_API_BASE"))
         set_if_absent("CHATGPT_MODEL", cfg.get("CHATGPT_MODEL"))
     elif api_type in ("nvidia", "nvidia_nim"):

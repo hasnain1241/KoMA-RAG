@@ -1,27 +1,31 @@
-OPENAI_API_TYPE: 'nvidia'  # azure | openai | ollama | nvidia | nvidia_nim
+OPENAI_API_TYPE: 'openai'  # azure | openai | ollama | nvidia | nvidia_nim
 
-# --- NVIDIA Integrate API (OpenAI SDK v1 client) ---
+# --- Groq via OpenAI-compatible API (OpenAI SDK v1 client) ---
+# Set your key as an env var, never commit a real key here:
+#   export GROQ_API_KEY=gsk_...          (bash)
+#   $env:GROQ_API_KEY = "gsk_..."        (PowerShell)
+# GROQ_API_KEY takes precedence over OPENAI_API_KEY below when set (see loadConfig.py).
+OPENAI_API_KEY: 'CHANGEME-set-GROQ_API_KEY-env-var-instead'
+OPENAI_API_BASE: 'https://api.groq.com/openai/v1'
+
+# --- NVIDIA Integrate API (unused while OPENAI_API_TYPE=openai; kept for reference) ---
 # Prefer env:  export NVIDIA_API_KEY=nvapi-...
-# Or set below (must start with nvapi-):
-NVIDIA_API_KEY: 'CHANGEME-REDACTED-LEAKED-KEY'
+NVIDIA_API_KEY: 'CHANGEME-set-NVIDIA_API_KEY-env-var-instead'
 NVIDIA_BASE_URL: 'https://integrate.api.nvidia.com/v1'
 NVIDIA_TOP_P: 0.95            # default for DeepSeek; other models omit unless set
 NVIDIA_THINKING: false        # DeepSeek chat_template_kwargs.thinking (off for AV hot path)
 NVIDIA_MAX_TOKENS: 2048       # driver/master default; DeepSeek chat demos often use 16384
 
-# Legacy / non-nvidia credentials (unused when OPENAI_API_TYPE=nvidia)
+# Legacy / unused credentials
 REAL_OPENAI_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxx'
-OPENAI_API_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxx'
-OPENAI_API_BASE: 'https://integrate.api.nvidia.com/v1'
 OPENAI_API_VERSION: '2023-03-15-preview'
 
-# --- Chat model roles (NVIDIA NIM model IDs) ---
-# planner/driver default
-CHATGPT_MODEL: 'meta/llama-3.1-70b-instruct'  # build page: meta/llama-3_1-70b-instruct
-MODEL_DRIVER: 'meta/llama-3.1-70b-instruct'
-MODEL_MASTER: 'mistralai/mistral-medium-3.5-128b'
-MODEL_REFLECTION: 'mistralai/mistral-medium-3.5-128b'
-MODEL_VERIFY: 'deepseek-ai/deepseek-v4-pro'  # thinking via NVIDIA_THINKING (default false)
+# --- Chat model roles (Groq model IDs) ---
+CHATGPT_MODEL: 'openai/gpt-oss-20b'
+MODEL_DRIVER: 'openai/gpt-oss-20b'
+MODEL_MASTER: 'openai/gpt-oss-20b'
+MODEL_REFLECTION: 'openai/gpt-oss-20b'
+MODEL_VERIFY: 'openai/gpt-oss-20b'
 OLLAMA_MODEL: 'llama3'
 
 # --- Embeddings ---

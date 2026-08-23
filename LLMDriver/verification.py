@@ -96,6 +96,7 @@ class VerificationModule:
         if factual_use_llm:
             self.llm = create_chat_llm(role="verify", temperature=0.0, max_tokens=200)
         self._all_scores: List[float] = []
+        self._factual_scores: List[float] = []
         self._passed = 0
         self._filtered = 0
 
@@ -193,6 +194,7 @@ class VerificationModule:
         )
         v_sem = self.semantic_score(query_embedding, doc_embedding, similarity_distance)
         v_fac = self.factual_score(experience_text, context)
+        self._factual_scores.append(v_fac)
         v_ctx = self.contextual_score(
             experience_text,
             meta.get("simulation_time", meta.get("timestamp")),
@@ -268,3 +270,13 @@ class VerificationModule:
 
     def mean_score(self) -> float:
         return float(np.mean(self._all_scores)) if self._all_scores else 0.0
+
+    def mean_factual_score(self) -> float:
+        """Mean V_factual across verify_one() calls since the last reset (NaN if none)."""
+        return float(np.mean(self._factual_scores)) if self._factual_scores else float("nan")
+
+    def reset_episode_stats(self) -> None:
+        self._all_scores = []
+        self._factual_scores = []
+        self._passed = 0
+        self._filtered = 0

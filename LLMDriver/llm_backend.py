@@ -11,6 +11,7 @@ No silent Mock fallback: real providers raise on API errors.
 from __future__ import annotations
 
 import os
+import time
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 
@@ -41,6 +42,16 @@ def _env_float(key: str, default: Optional[float] = None) -> Optional[float]:
         return default
     try:
         return float(raw)
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(key: str, default: int) -> int:
+    raw = _env(key)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return int(raw)
     except (TypeError, ValueError):
         return default
 
@@ -84,11 +95,13 @@ def _to_openai_messages(messages: Sequence[MessageLike]) -> List[Dict[str, str]]
 
 class NvidiaChatLLM:
     """
-    NVIDIA Integrate API via the OpenAI Python SDK (v1 client).
+    Generic OpenAI-v1-SDK-compatible chat client.
 
+    Despite the name (kept for backward compat), this works against any
+    OpenAI-compatible endpoint: NVIDIA Integrate API, Groq, real OpenAI, etc.
     Matches:
-      client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key="nvapi-...")
-      client.chat.completions.create(..., extra_body={...}, stream=False)
+      client = OpenAI(base_url="...", api_key="...")
+      client.chat.completions.create(..., stream=False)
     """
 
     def __init__(
@@ -101,8 +114,10 @@ class NvidiaChatLLM:
         timeout: float = 120.0,
         top_p: Optional[float] = None,
         thinking: Optional[bool] = None,
+        provider_label: str = "NVIDIA",
     ) -> None:
         self.model = model
+        self.provider_label = provider_label
         # Prefer explicit api_key argument; treat blank as missing
         if api_key is not None and str(api_key).strip() != "":
             self.api_key = str(api_key).strip()
@@ -134,11 +149,12 @@ class NvidiaChatLLM:
         if (
             not self.api_key
             or str(self.api_key).strip().startswith("xxxx")
+            or str(self.api_key).strip().startswith("CHANGEME")
             or str(self.api_key).strip() in ("nvapi-...", "nvapi-")
         ):
             raise RuntimeError(
-                "NVIDIA API key missing. Set NVIDIA_API_KEY in config.yaml / environment "
-                "(value should start with nvapi-)."
+                f"{self.provider_label} API key missing. Set NVIDIA_API_KEY / GROQ_API_KEY "
+                "(or OPENAI_API_KEY) in the environment, or in config.yaml."
             )
 
         from openai import OpenAI
@@ -171,23 +187,50 @@ class NvidiaChatLLM:
                 "chat_template_kwargs": {"thinking": bool(thinking)}
             }
 
-        try:
-            completion = self._client.chat.completions.create(**create_kwargs)
-        except Exception as exc:
-            raise RuntimeError(
-                f"NVIDIA Integrate API request failed for model={self.model}: {exc}"
-            ) from exc
+        max_retries = _env_int("LLM_MAX_RETRIES", 5)
+        base_delay = _env_float("LLM_RETRY_BASE_DELAY", 5.0) or 5.0
+        max_delay = _env_float("LLM_RETRY_MAX_DELAY", 60.0) or 60.0
+        attempt = 0
+        while True:
+            try:
+                completion = self._client.chat.completions.create(**create_kwargs)
+                break
+            except Exception as exc:
+                status_code = getattr(exc, "status_code", None)
+                is_rate_limit = status_code == 429 or exc.__class__.__name__ == "RateLimitError"
+                if not is_rate_limit or attempt >= max_retries:
+                    raise RuntimeError(
+                        f"{self.provider_label} API request failed for model={self.model}: {exc}"
+                    ) from exc
+
+                retry_after = None
+                response = getattr(exc, "response", None)
+                headers = getattr(response, "headers", None)
+                if headers is not None:
+                    retry_after = headers.get("retry-after")
+                try:
+                    wait_s = float(retry_after) if retry_after else base_delay * (2 ** attempt)
+                except (TypeError, ValueError):
+                    wait_s = base_delay * (2 ** attempt)
+                wait_s = min(wait_s, max_delay)
+
+                attempt += 1
+                print(
+                    f"[rate-limit] {self.provider_label} 429 for model={self.model}; "
+                    f"retry {attempt}/{max_retries} in {wait_s:.1f}s..."
+                )
+                time.sleep(wait_s)
 
         try:
             content = completion.choices[0].message.content
         except (AttributeError, IndexError, TypeError) as exc:
             raise RuntimeError(
-                f"NVIDIA Integrate API returned unexpected payload for model={self.model}: {completion!r}"
+                f"{self.provider_label} API returned unexpected payload for model={self.model}: {completion!r}"
             ) from exc
 
         if content is None:
             raise RuntimeError(
-                f"NVIDIA Integrate API returned empty content for model={self.model}"
+                f"{self.provider_label} API returned empty content for model={self.model}"
             )
         return LLMResponse(str(content))
 
@@ -254,9 +297,28 @@ def create_chat_llm(
             temperature=temperature,
             max_tokens=max_tokens,
             timeout=request_timeout,
+            provider_label="NVIDIA",
         )
 
-    from langchain.chat_models import AzureChatOpenAI, ChatOpenAI, ChatOllama
+    if api_type == "openai":
+        # NOTE: deliberately bypasses langchain.chat_models.ChatOpenAI here.
+        # langchain==0.0.331 targets the pre-v1 openai SDK, while this repo
+        # pins openai>=1.12,<2 for the NVIDIA path; the two are incompatible.
+        # Reuse the same direct v1-client path instead (works for Groq,
+        # real OpenAI, or any other OpenAI-compatible base_url).
+        base_url = _env("OPENAI_API_BASE") or "https://api.openai.com/v1"
+        print(f"Using OpenAI-compatible Chat API (role={role}, model={model}, base_url={base_url})")
+        return NvidiaChatLLM(
+            model=model,
+            api_key=_env("OPENAI_API_KEY"),
+            base_url=base_url,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=request_timeout,
+            provider_label="OpenAI-compatible",
+        )
+
+    from langchain.chat_models import AzureChatOpenAI, ChatOllama
 
     if api_type == "azure":
         print(f"Using Azure Chat API (role={role})")
@@ -265,17 +327,6 @@ def create_chat_llm(
             AzureChatOpenAI(
                 deployment_name=deployment,
                 temperature=temperature,
-                max_tokens=max_tokens,
-                request_timeout=int(request_timeout),
-            )
-        )
-
-    if api_type == "openai":
-        print(f"Using OpenAI Chat API (role={role}, model={model})")
-        return LangchainChatAdapter(
-            ChatOpenAI(
-                temperature=temperature,
-                model_name=model if "/" not in model else "gpt-4-turbo-preview",
                 max_tokens=max_tokens,
                 request_timeout=int(request_timeout),
             )
