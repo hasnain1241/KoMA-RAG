@@ -140,8 +140,16 @@ class DriverAgent:
         response = self.llm(messages)
         print("Time used: ", time.time() - start_time)
         print(response.content)
-        new_plan = response.content.split(delimiter)[-2]
-        decision_action = response.content.split(delimiter)[-1]
+        response_parts = response.content.split(delimiter)
+        if len(response_parts) >= 3:
+            new_plan = response_parts[-2]
+            decision_action = response_parts[-1]
+        else:
+            # Model replied without the expected `####` delimiters at least
+            # twice; fall back to the raw text so the int-check repair loop
+            # below can still recover a valid action_id.
+            new_plan = response.content.strip()
+            decision_action = response_parts[-1]
         try:
             result = int(decision_action)
             if result < 0 or result > 4:
@@ -172,7 +180,13 @@ class DriverAgent:
             ]
             with get_openai_callback() as cb:
                 check_response = self.llm(messages)
-            result = int(check_response.content.split(delimiter)[-1])
+            try:
+                result = int(check_response.content.split(delimiter)[-1])
+                if result < 0 or result > 4:
+                    raise ValueError
+            except ValueError:
+                print("Repair response still not a valid action_id; defaulting to IDLE (1).")
+                result = 1
 
         few_shot_answers_store = ""
         for i in range(len(fewshot_messages)):

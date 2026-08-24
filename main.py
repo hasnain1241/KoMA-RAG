@@ -276,7 +276,11 @@ while episode < simulation_duration:
                         comments="collision-mistake-correction"
                         )
                 else:
-                    wrong_action = int(RCA.reflection_choose(e_list, s_list))
+                    try:
+                        wrong_action = int(RCA.reflection_choose(e_list, s_list))
+                    except ValueError:
+                        print("[yellow]reflection_choose output not parseable as int; assuming no mistake.[/yellow]")
+                        wrong_action = -1
                     if wrong_action == -1:
                         for i in range(0, len(docs)):
                             agentMemory.addMemory(
