@@ -54,10 +54,17 @@ def apply_config_to_env(cfg: Dict[str, Any]) -> None:
         set_if_absent("EMBEDDING_MODEL", cfg.get("EMBEDDING_MODEL"))
         set_if_absent("CHATGPT_MODEL", cfg.get("CHATGPT_MODEL"))
     elif api_type == "openai":
-        # Groq (or any OpenAI-compatible provider) key: env var wins over config.yaml.
-        groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-        if groq_key:
-            os.environ["OPENAI_API_KEY"] = groq_key
+        # OpenAI-compatible provider: pick the provider-specific key that
+        # matches OPENAI_API_BASE, so having multiple provider keys in .env
+        # (GROQ_API_KEY, MISTRAL_API_KEY, ...) doesn't silently cross-wire.
+        base = str(cfg.get("OPENAI_API_BASE") or "").lower()
+        provider_key = None
+        if "mistral" in base:
+            provider_key = os.environ.get("MISTRAL_API_KEY", "").strip()
+        elif "groq" in base:
+            provider_key = os.environ.get("GROQ_API_KEY", "").strip()
+        if provider_key:
+            os.environ["OPENAI_API_KEY"] = provider_key
         else:
             set_if_absent("OPENAI_API_KEY", cfg.get("REAL_OPENAI_KEY") or cfg.get("OPENAI_API_KEY"))
         set_if_absent("OPENAI_API_BASE", cfg.get("OPENAI_API_BASE"))

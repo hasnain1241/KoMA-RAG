@@ -31,6 +31,7 @@ RESULT_ROOT = os.path.join(REPO_ROOT, "result")
 
 EPISODES_PER_CONFIG = 20
 SEED_EPISODES = 10  # bump for a richer memory store; costs extra API calls
+MAX_STEPS_PER_EPISODE = 20  # caps tokens/episode; independent of episode count
 
 SEED_RUN = {
     "key": "seed",
@@ -125,6 +126,7 @@ def run_one(run_spec):
     env = os.environ.copy()
     env["RESULT_FOLDER"] = folder
     env["SIMULATION_DURATION"] = str(episodes)
+    env["MAX_STEPS_PER_EPISODE"] = str(MAX_STEPS_PER_EPISODE)
 
     driver_log_path = os.path.join(folder, "run_ablation_stdout.log")
     with open(driver_log_path, "a", encoding="utf-8") as logf:

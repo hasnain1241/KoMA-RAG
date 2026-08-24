@@ -6,7 +6,7 @@ OPENAI_API_TYPE: 'openai'  # azure | openai | ollama | nvidia | nvidia_nim
 #   $env:GROQ_API_KEY = "gsk_..."        (PowerShell)
 # GROQ_API_KEY takes precedence over OPENAI_API_KEY below when set (see loadConfig.py).
 OPENAI_API_KEY: 'CHANGEME-set-GROQ_API_KEY-env-var-instead'
-OPENAI_API_BASE: 'https://api.groq.com/openai/v1'
+OPENAI_API_BASE: 'https://api.mistral.ai/v1'
 
 # --- NVIDIA Integrate API (unused while OPENAI_API_TYPE=openai; kept for reference) ---
 # Prefer env:  export NVIDIA_API_KEY=nvapi-...
@@ -21,14 +21,14 @@ REAL_OPENAI_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxx'
 OPENAI_API_VERSION: '2023-03-15-preview'
 
 # --- Chat model roles (Groq model IDs) ---
-# llama-3.1-8b-instant was requested but Groq has since deprecated/removed it
-# (verified live against /v1/models on 2026-08-24); openai/gpt-oss-20b is the
-# fastest currently-available general chat model on this key.
-CHATGPT_MODEL: 'openai/gpt-oss-20b'
-MODEL_DRIVER: 'openai/gpt-oss-20b'
-MODEL_MASTER: 'openai/gpt-oss-20b'
-MODEL_REFLECTION: 'openai/gpt-oss-20b'
-MODEL_VERIFY: 'openai/gpt-oss-20b'
+# Groq's 20b/120b daily quotas ran out; switched to Mistral's free tier
+# (1B tokens/month, verified live against /v1/models on 2026-08-24) so the
+# full-scope ablation study can run in one sitting without a quota wall.
+CHATGPT_MODEL: 'mistral-small-latest'
+MODEL_DRIVER: 'mistral-small-latest'
+MODEL_MASTER: 'mistral-small-latest'
+MODEL_REFLECTION: 'mistral-small-latest'
+MODEL_VERIFY: 'mistral-small-latest'
 OLLAMA_MODEL: 'llama3'
 
 # --- Embeddings ---

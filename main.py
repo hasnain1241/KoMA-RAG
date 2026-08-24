@@ -45,6 +45,7 @@ result_folder = os.environ.get("RESULT_FOLDER", "./result/test")
 few_shot_num = flags["FEW_SHOT_NUM"]
 k_candidates = flags["K_CANDIDATES"]
 simulation_duration = int(os.environ.get("SIMULATION_DURATION", "20"))
+max_steps_per_episode = int(os.environ.get("MAX_STEPS_PER_EPISODE", str(simulation_duration)))
 
 # environment setting
 config={
@@ -148,7 +149,7 @@ while episode < simulation_duration:
         with get_openai_callback() as cb:
             already_decision_steps = 0
             previous_plan_list = [None, None]
-            for j in range(0, simulation_duration):
+            for j in range(0, max_steps_per_episode):
                 collision_frame = -1
                 obs = np.array(obs, dtype=float)
 
