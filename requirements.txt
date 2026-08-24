@@ -14,3 +14,4 @@ moviepy==1.0.3
 tiktoken==0.5.1
 requests>=2.31.0
 sentence-transformers>=2.2.2
+python-dotenv>=1.0.0

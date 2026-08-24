@@ -3,6 +3,9 @@ import os
 from typing import Any, Dict
 
 import yaml
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def _as_bool(value: Any, default: bool = False) -> bool:

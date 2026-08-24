@@ -21,11 +21,14 @@ REAL_OPENAI_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxx'
 OPENAI_API_VERSION: '2023-03-15-preview'
 
 # --- Chat model roles (Groq model IDs) ---
-CHATGPT_MODEL: 'llama-3.1-8b-instant'
-MODEL_DRIVER: 'llama-3.1-8b-instant'
-MODEL_MASTER: 'llama-3.1-8b-instant'
-MODEL_REFLECTION: 'llama-3.1-8b-instant'
-MODEL_VERIFY: 'llama-3.1-8b-instant'
+# llama-3.1-8b-instant was requested but Groq has since deprecated/removed it
+# (verified live against /v1/models on 2026-08-24); openai/gpt-oss-20b is the
+# fastest currently-available general chat model on this key.
+CHATGPT_MODEL: 'openai/gpt-oss-20b'
+MODEL_DRIVER: 'openai/gpt-oss-20b'
+MODEL_MASTER: 'openai/gpt-oss-20b'
+MODEL_REFLECTION: 'openai/gpt-oss-20b'
+MODEL_VERIFY: 'openai/gpt-oss-20b'
 OLLAMA_MODEL: 'llama3'
 
 # --- Embeddings ---
