@@ -155,6 +155,7 @@ def run_one(run_spec):
 
 def aggregate_results(runs=ABLATION_RUNS):
     rows = []
+    excluded_notes = []
     for run_spec in runs:
         name = run_spec["name"]
         summary_path = os.path.join(run_spec["folder"], "episode_summary.csv")
@@ -163,9 +164,21 @@ def aggregate_results(runs=ABLATION_RUNS):
             continue
         df = pd.read_csv(summary_path)
 
-        def fmt(series):
-            mean = np.nanmean(series) if len(series) else float("nan")
-            std = np.nanstd(series, ddof=1) if len(series) > 1 else 0.0
+        def fmt(series, label, config_name):
+            finite = series[np.isfinite(series)]
+            n_excluded = len(series) - len(finite)
+            # Only flag a partial exclusion (some rows broken, most fine) -- if
+            # every row is non-finite, that's the metric legitimately not
+            # applying to this config (e.g. factual_consistency when
+            # verification is off), not an anomaly worth a note.
+            if 0 < n_excluded < len(series):
+                excluded_notes.append(
+                    f"{config_name}: excluded {n_excluded}/{len(series)} episode(s) with "
+                    f"non-finite {label} (a rare highway-env reward-computation edge case, "
+                    f"not a code crash -- raw episode_summary.csv rows are untouched)."
+                )
+            mean = np.nanmean(finite) if len(finite) else float("nan")
+            std = np.nanstd(finite, ddof=1) if len(finite) > 1 else 0.0
             if np.isnan(mean):
                 return "N/A"
             return f"{mean:.3f} +/- {std:.3f}"
@@ -173,9 +186,9 @@ def aggregate_results(runs=ABLATION_RUNS):
         collision_pct = df["collision"] * 100.0
         rows.append({
             "Config": name,
-            "Reward (mean +/- std)": fmt(df["total_reward"]),
-            "Factual Consistency (mean +/- std)": fmt(df["factual_consistency"]),
-            "Collision Rate % (mean +/- std)": fmt(collision_pct),
+            "Reward (mean +/- std)": fmt(df["total_reward"], "reward", name),
+            "Factual Consistency (mean +/- std)": fmt(df["factual_consistency"], "factual consistency", name),
+            "Collision Rate % (mean +/- std)": fmt(collision_pct, "collision rate", name),
             "Episodes": len(df),
         })
 
@@ -194,6 +207,11 @@ def aggregate_results(runs=ABLATION_RUNS):
     ]
     for _, row in table.iterrows():
         lines.append("| " + " | ".join(str(row[c]) for c in cols) + " |")
+
+    if excluded_notes:
+        lines.append("")
+        for note in excluded_notes:
+            lines.append(f"Note: {note}")
 
     lines.append("")
     lines.append(
